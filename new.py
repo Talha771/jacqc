@@ -35,7 +35,7 @@ if uploaded_file:
     })
 
     # Empty JOBS
-    df["JOBS"] = ""
+    df["JOBS"] = " - "
 
     # Split into groups
     dfs, order = [], []
@@ -48,50 +48,58 @@ if uploaded_file:
 
     final = pd.concat(dfs, axis=1)
 
+
     # Save to BytesIO
     output = BytesIO()
     final.to_excel(output, index=False)
     output.seek(0)
 
-    # Post-process with openpyxl
+   # Post-process with openpyxl
     wb = load_workbook(output)
     ws = wb.active
 
     colors = ["FFCCCC", "CCFFCC", "CCCCFF", "FFFFCC", "FFCCFF", "CCFFFF", "E0E0E0"]
 
     col_offset = 1
+    ws.insert_rows(1)
     for idx, (member, acct) in enumerate(order):
         width = 6
         start_col, end_col = col_offset, col_offset + width - 1
 
-        # Merge top row
+        # Merge top row and set group header
         ws.merge_cells(start_row=1, start_column=start_col, end_row=1, end_column=end_col)
         ws.cell(row=1, column=start_col).value = f"{member} {acct}"
         ws.cell(row=1, column=start_col).alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-        # Fill header rows
+        # Fill header rows with color
         fill = PatternFill(start_color=colors[idx % len(colors)], end_color=colors[idx % len(colors)], fill_type="solid")
         for col in range(start_col, end_col + 1):
-            for row in [1, 2]:
+            for row in [1]:  # top 2 rows for headers
                 cell = ws.cell(row=row, column=col)
                 cell.fill = fill
                 cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-        # Format Amount column
+        # Format Amount column and add conditional highlighting
         amount_col = start_col + 3
         for row in range(3, ws.max_row + 1):
             cell = ws.cell(row=row, column=amount_col)
             if isinstance(cell.value, (int, float)):
                 cell.number_format = u'"$"#,##0.00'
+                # Highlight based on value
+                if cell.value > 300:
+                    cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+                elif cell.value > 75:
+                    cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
             cell.alignment = Alignment(wrap_text=True)
 
-        # Wrap text others
+        # Wrap text for other columns
         for col in range(start_col, end_col + 1):
             if col != amount_col:
                 for row in range(3, ws.max_row + 1):
                     ws.cell(row=row, column=col).alignment = Alignment(wrap_text=True, vertical="top")
 
         col_offset += width
+
 
     # Save to buffer again
     final_buf = BytesIO()
