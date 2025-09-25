@@ -41,8 +41,8 @@ if uploaded_file:
     dfs, order = [], []
     for (member, acct), group in df.groupby(["Card Member", "Account #"]):
         group = group.reset_index(drop=True)
-        group = group[["JOBS", "Date", "Location", "Amount", "Category", "Descript"]]
-        group.columns = ["JOBS", "Date", "Location", "Amount", "Category", "Description"]
+        group = group[["JOBS", "Date", "Location", "Amount", "Category", "Descript","Notes"]]
+        group.columns = ["JOBS", "Date", "Location", "Amount", "Category", "Description","Notes"]
         dfs.append(group)
         order.append((member, acct))
 
@@ -63,7 +63,7 @@ if uploaded_file:
     col_offset = 1
     ws.insert_rows(1)
     for idx, (member, acct) in enumerate(order):
-        width = 6
+        width = 7
         start_col, end_col = col_offset, col_offset + width - 1
 
         # Merge top row and set group header
