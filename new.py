@@ -36,7 +36,7 @@ if uploaded_file:
 
     # Empty JOBS
     df["JOBS"] = " - "
-
+    df ["Notes"] = ""
     # Split into groups
     dfs, order = [], []
     for (member, acct), group in df.groupby(["Card Member", "Account #"]):
