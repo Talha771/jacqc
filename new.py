@@ -90,7 +90,7 @@ if uploaded_file:
                 if cell.value > 300:
                     cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
                 elif cell.value > 75:
-                    cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid')
+                    cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type='solid')
             cell.alignment = Alignment(wrap_text=True)
 
         # Wrap text for other columns
