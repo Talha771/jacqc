@@ -2,7 +2,6 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, PatternFill
 
 st.set_page_config(page_title="Expense Formatter", layout="wide")
@@ -24,9 +23,12 @@ if uploaded_file:
 
     # Process
     data.columns = data.iloc[5]
-    data = data.iloc[6:]
-    data = data.sort_values(by=["Account #", "Card Member", "Category", "Amount"]).reset_index(drop=True)
+    data = data.iloc[6:].reset_index(drop=True)
 
+    # Ensure Date column is datetime
+    data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+
+    # Keep only useful columns
     cols = ["Date", "Appears On Your Statement As", "Amount", "Category", "Description", "Card Member", "Account #"]
     df = data[cols].copy()
     df = df.rename(columns={
@@ -34,27 +36,28 @@ if uploaded_file:
         "Description": "Descript"
     })
 
-    # Empty JOBS
+    # Empty JOBS and Notes columns
     df["JOBS"] = " - "
-    df ["Notes"] = ""
-    # Split into groups
+    df["Notes"] = ""
+
+    # Split into groups and SORT by Date DESC inside each group
     dfs, order = [], []
     for (member, acct), group in df.groupby(["Card Member", "Account #"]):
-        group = group.reset_index(drop=True)
-        group = group[["JOBS", "Date", "Location", "Amount", "Category", "Descript","Notes"]]
-        group.columns = ["JOBS", "Date", "Location", "Amount", "Category", "Description","Notes"]
+        # Sort by Date descending, then Amount descending
+        group = group.sort_values(by=["Date", "Amount"], ascending=[False, False]).reset_index(drop=True)
+        group = group[["JOBS", "Date", "Location", "Amount", "Category", "Descript", "Notes"]]
+        group.columns = ["JOBS", "Date", "Location", "Amount", "Category", "Description", "Notes"]
         dfs.append(group)
         order.append((member, acct))
 
     final = pd.concat(dfs, axis=1)
-
 
     # Save to BytesIO
     output = BytesIO()
     final.to_excel(output, index=False)
     output.seek(0)
 
-   # Post-process with openpyxl
+    # Post-process with openpyxl
     wb = load_workbook(output)
     ws = wb.active
 
@@ -71,13 +74,12 @@ if uploaded_file:
         ws.cell(row=1, column=start_col).value = f"{member} {acct}"
         ws.cell(row=1, column=start_col).alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-        # Fill header rows with color
+        # Fill header row with color
         fill = PatternFill(start_color=colors[idx % len(colors)], end_color=colors[idx % len(colors)], fill_type="solid")
         for col in range(start_col, end_col + 1):
-            for row in [1]:  # top 2 rows for headers
-                cell = ws.cell(row=row, column=col)
-                cell.fill = fill
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell = ws.cell(row=1, column=col)
+            cell.fill = fill
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
         # Format Amount column and add conditional highlighting
         amount_col = start_col + 3
@@ -85,11 +87,10 @@ if uploaded_file:
             cell = ws.cell(row=row, column=amount_col)
             if isinstance(cell.value, (int, float)):
                 cell.number_format = u'"$"#,##0.00'
-                # Highlight based on value
                 if cell.value > 300:
                     cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
                 elif cell.value > 75:
-                    cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+                    cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid')
             cell.alignment = Alignment(wrap_text=True)
 
         # Wrap text for other columns
@@ -99,7 +100,6 @@ if uploaded_file:
                     ws.cell(row=row, column=col).alignment = Alignment(wrap_text=True, vertical="top")
 
         col_offset += width
-
 
     # Save to buffer again
     final_buf = BytesIO()
