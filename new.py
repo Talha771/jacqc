@@ -27,6 +27,8 @@ if uploaded_file:
 
     # Ensure Date column is datetime
     data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+    data["Date"] = data["Date"].dt.date  # keep only the date
+
 
     # Keep only useful columns
     cols = ["Date", "Appears On Your Statement As", "Amount", "Category", "Description", "Card Member", "Account #"]
