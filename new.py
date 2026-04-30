@@ -28,7 +28,7 @@ def preprocess_data(df, pending=False):
 
     # Keep useful columns
     cols = ["Date", "Appears On Your Statement As", "Amount", "Category", "Description", "Card Member", "Account #"]
-    df = df[cols].copy()
+    df = df[cols].copy()        
     df = df.rename(columns={
         "Appears On Your Statement As": "Location",
         "Description": "Descript"
@@ -115,15 +115,17 @@ uploaded_pending = st.file_uploader("Upload Pending Transactions", type=["xlsx",
 if uploaded_posted and uploaded_pending:
     df_posted = read_input(uploaded_posted)
     df_pending = read_input(uploaded_pending)
-
-    if df_posted is not None and df_pending is not None:
+    pending_flag = True
+    if (len(df_pending)<7):
+        pending_flag = False
+    if df_posted is not None and df_pending  is not None:
         df_posted = preprocess_data(df_posted, pending=False)
-        df_pending = preprocess_data(df_pending, pending=True)
-
-        # Combine
-        df_combined = pd.concat([df_posted, df_pending], ignore_index=True)
-
-        # Group, sort
+        if pending_flag == True:
+            df_pending = preprocess_data(df_pending, pending=True)
+        # # Combine
+            df_combined = pd.concat([df_posted, df_pending], ignore_index=True)
+        else : df_combined = df_posted
+        # # Group, sort
         final_df, order = group_and_sort(df_combined)
 
         # Style and produce Excel buffer
